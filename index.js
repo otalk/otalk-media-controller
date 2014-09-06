@@ -93,7 +93,7 @@ module.exports = State.extend({
             origin: 'local',
             stream: stream,
             isScreen: isScreen,
-            owner: owner 
+            owner: owner
         }));
     },
 
@@ -102,7 +102,7 @@ module.exports = State.extend({
             id: stream.id,
             origin: 'remote',
             stream: stream,
-            session: owner 
+            owner: owner
         }));
     },
 
