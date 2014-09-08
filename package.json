@@ -23,7 +23,7 @@
     "hark": "^1.1.1",
     "getusermedia": "^1.0.0",
     "getscreenmedia": "^1.2.2",
-    "otalk-model-media": "^1.2.0",
+    "otalk-model-media": "^1.4.0",
     "otalk-media-stream-view": "^1.0.0"
   },
   "devDependencies": {

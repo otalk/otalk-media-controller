@@ -78,6 +78,7 @@ module.exports = State.extend({
                     audio: true,
                     video: true
                 },
+                simulcast: true,
                 audioMonitoring: {
                     detectSpeaking: true,
                     adjustMic: false
@@ -115,17 +116,46 @@ module.exports = State.extend({
 
     start: function (constraints, cb) {
         var self = this;
+
+        cb = cb || function () {};
+
         constraints = constraints || this.config.media || {
             audio: true,
             video: true
         };
 
         getUserMedia(constraints, function (err, stream) {
-            if (!err) {
-                self.addLocalStream(stream);
+            if (err) {
+                return cb(err);
             }
-            if (cb) {
-                return cb(err, stream);
+
+            var simulcastAvailable = parseInt(navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./)[2], 10) >= 37;
+
+            if (!!constraints.video && self.config.simulcast && simulcastAvailable) {
+                constraints.audio = false;
+
+                if (constraints.video === true) {
+                    constraints.video = {
+                        mandatory: {}
+                    };
+                } else if (!constraints.video.mandatory) {
+                    constraints.video.mandatory = {};
+                }
+
+                constraints.video.mandatory.maxWidth = 160;
+                constraints.video.mandatory.maxHeight = 120;
+                constraints.video.mandatory.maxFrameRate = 12;
+
+                getUserMedia(constraints, function (err, smallStream) {
+                    if (!err) {
+                        stream.addTrack(smallStream.getVideoTracks()[0]);
+                    }
+                    self.addLocalStream(stream);
+                    return cb(null, stream);
+                });
+            } else {
+                self.addLocalStream(stream);
+                return cb(null, stream);
             }
         });
     },
@@ -212,5 +242,13 @@ module.exports = State.extend({
 
     getStream: function (id) {
         return this.streams.get(id);
+    },
+
+    ensureLocalStreams: function (constraints, cb) {
+        if (!this.localStreams.length) {
+            this.start(constraints, cb);
+        } else {
+            process.nextTick(cb);
+        }
     }
 });

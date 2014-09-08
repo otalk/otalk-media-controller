@@ -24,3 +24,4 @@ A module for tracking all media streams in an app, both local and remote.
 - `pauseVideo()`
 - `resumeAudio()`
 - `resumeVideo()`
+- `ensureLocalStreams(constraints, cb)`
