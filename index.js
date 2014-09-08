@@ -63,6 +63,12 @@ module.exports = State.extend({
                 self.capturingScreen = !!self.localScreens.length;
             }, 1);
         });
+
+        this.streams.bind('change:ended', function (stream) {
+            if (stream.ended) {
+                self.streams.remove(stream);
+            }
+        });
     },
 
     props: {
@@ -74,7 +80,7 @@ module.exports = State.extend({
                 },
                 audioMonitoring: {
                     detectSpeaking: true,
-                    adjustMic: true
+                    adjustMic: false
                 }
             };
         }],
@@ -88,22 +94,23 @@ module.exports = State.extend({
     },
 
     addLocalStream: function (stream, isScreen, owner) {
-        this.streams.add(new Stream({
+        this.streams.add({
             id: stream.id,
             origin: 'local',
             stream: stream,
             isScreen: isScreen,
-            owner: owner
-        }));
+            owner: owner,
+            audioMonitoring: this.config.audioMonitoring
+        });
     },
 
     addRemoteStream: function (stream, owner) {
-        this.streams.add(new Stream({
+        this.streams.add({
             id: stream.id,
             origin: 'remote',
             stream: stream,
             owner: owner
-        }));
+        });
     },
 
     start: function (constraints, cb) {
@@ -201,5 +208,9 @@ module.exports = State.extend({
         this.localStreams.forEach(function (stream) {
             stream.playVideo();
         });
+    },
+
+    getStream: function (id) {
+        return this.streams.get(id);
     }
 });

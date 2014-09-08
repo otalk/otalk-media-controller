@@ -23,7 +23,8 @@
     "hark": "^1.1.1",
     "getusermedia": "^1.0.0",
     "getscreenmedia": "^1.2.2",
-    "otalk-model-media": "^1.2.0"
+    "otalk-model-media": "^1.2.0",
+    "otalk-media-stream-view": "^1.0.0"
   },
   "devDependencies": {
     "ampersand-view": "^7.1.1",
@@ -32,6 +33,6 @@
     "precommit-hook": "^1.0.7"
   },
   "scripts": {
-    "start": "./node_modules/.bin/beefy demo.js"
+    "start": "./node_modules/.bin/beefy demo/demo.js"
   }
 }
