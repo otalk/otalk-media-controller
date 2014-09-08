@@ -1,3 +1,4 @@
+var webrtcsupport = require('webrtcsupport');
 var getUserMedia = require('getusermedia');
 var getScreenMedia = require('getscreenmedia');
 var Stream = require('otalk-model-media');
@@ -41,10 +42,7 @@ module.exports = State.extend({
                     capturingVideo: false
                 };
 
-                console.log(self.localStreams.length);
-
                 self.localStreams.forEach(function (stream) {
-                    console.log(stream.hasAudio, stream.isVideo);
                     if (stream.hasAudio) {
                         updates.capturingAudio = true;
                     }
@@ -69,6 +67,22 @@ module.exports = State.extend({
                 self.streams.remove(stream);
             }
         });
+
+        // Check what kinds of input devices, if any, we have
+        // FIXME: This device detection process will be changing in M38 to
+        //        use enumerateDevices() instead (along with a new event).
+        window.MediaStreamTrack.getSources(function (sources) {
+            sources.forEach(function(source) {
+                if (source.kind === 'audio') {
+                    self.micAvailable = true;
+                }
+                if (source.kind === 'video') {
+                    self.cameraAvailable = true;
+                }
+            });
+        });
+
+        this.screenSharingAvailable = webrtcsupport.screenSharing;
     },
 
     props: {
@@ -87,7 +101,10 @@ module.exports = State.extend({
         }],
         capturingAudio: 'boolean',
         capturingVideo: 'boolean',
-        capturingScreen: 'boolean'
+        capturingScreen: 'boolean',
+        micAvailable: 'boolean',
+        cameraAvailable: 'boolean',
+        screenSharingAvailable: 'boolean'
     },
 
     collections: {

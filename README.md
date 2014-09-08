@@ -7,6 +7,9 @@ A module for tracking all media streams in an app, both local and remote.
 - `capturingAudio` - `{Boolean}`
 - `capturingVideo` - `{Boolean}`
 - `capturingScreen` - `{Boolean}`
+- `micAvailable` - `{Boolean}`
+- `cameraAvailable` - `{Boolean}`
+- `screenSharingAvailable` - `{Boolean}`
 - `localStreams` - `{Collection}`
 - `localScreens` - `{Collection}`
 - `remoteStreams` - `{Collection}`

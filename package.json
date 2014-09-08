@@ -24,7 +24,8 @@
     "getusermedia": "^1.0.0",
     "getscreenmedia": "^1.2.2",
     "otalk-model-media": "^1.4.0",
-    "otalk-media-stream-view": "^1.0.0"
+    "otalk-media-stream-view": "^1.0.0",
+    "webrtcsupport": "^1.1.0"
   },
   "devDependencies": {
     "ampersand-view": "^7.1.1",
