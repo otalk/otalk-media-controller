@@ -17,6 +17,8 @@ A module for tracking all media streams in an app, both local and remote.
 - `videoSources` - `{Collection}`
 - `streams` - `{Collection}`
 - `sources` - `{Collection}`
+- `preferredMic` - `{String}`
+- `preferredCamera` - `{String}`
 
 ## Methods
 

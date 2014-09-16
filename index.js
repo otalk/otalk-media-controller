@@ -134,6 +134,8 @@ module.exports = State.extend({
                 }
             };
         }],
+        preferredMic: 'string',
+        preferredCamera: 'string',
         capturingAudio: 'boolean',
         capturingVideo: 'boolean',
         capturingScreen: 'boolean',
@@ -172,10 +174,27 @@ module.exports = State.extend({
 
         cb = cb || function () {};
 
-        constraints = constraints || this.config.media || {
-            audio: true,
-            video: true
-        };
+        if (!constraints) {
+            constraints = JSON.parse(JSON.stringify(this.config.media || {
+                audio: true,
+                video: true
+            }));
+        }
+
+        if (constraints.audio === true && this.audioSources.get(this.preferredMic)) {
+            constraints.audio = {
+                optional: [
+                    {sourceId: this.preferredMic}
+                ]
+            };
+        }
+        if (constraints.video === true && this.videoSources.get(this.preferredCamera)) {
+            constraints.video = {
+                optional: [
+                    {sourceId: this.preferredCamera}
+                ]
+            };
+        }
 
         getUserMedia(constraints, function (err, stream) {
             if (err) {
