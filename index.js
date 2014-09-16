@@ -7,8 +7,21 @@ var Collection = require('ampersand-collection');
 var SubCollection = require('ampersand-subcollection');
 
 
+var Source = State.extend({
+    props: {
+        id: 'string',
+        label: 'string',
+        kind: 'string',
+        facing: ''
+    }
+});
+
 var StreamCollection = Collection.extend({
     model: Stream
+});
+
+var SourceCollection = Collection.extend({
+    model: Source
 });
 
 
@@ -31,6 +44,18 @@ module.exports = State.extend({
         this.remoteStreams = new SubCollection(this.streams, {
             filter: function (stream) {
                 return !stream.ended && stream.isRemote;
+            }
+        });
+
+        this.audioSources = new SubCollection(this.sources, {
+            filter: function (source) {
+                return source.kind === 'audio';
+            }
+        });
+
+        this.videoSources = new SubCollection(this.sources, {
+            filter: function (source) {
+                return source.kind === 'video';
             }
         });
 
@@ -68,18 +93,28 @@ module.exports = State.extend({
             }
         });
 
+        this.audioSources.bind('add remove reset', function () {
+            setTimeout(function () {
+                if (self.audioSources.length) {
+                    self.micAvailable = true;
+                }
+            }, 1);
+        });
+
+        this.videoSources.bind('add remove reset', function () {
+            setTimeout(function () {
+                if (self.videoSources.length) {
+                    self.cameraAvailable = true;
+                }
+            }, 1);
+        });
+
+
         // Check what kinds of input devices, if any, we have
         // FIXME: This device detection process will be changing in M38 to
         //        use enumerateDevices() instead (along with a new event).
         window.MediaStreamTrack.getSources(function (sources) {
-            sources.forEach(function(source) {
-                if (source.kind === 'audio') {
-                    self.micAvailable = true;
-                }
-                if (source.kind === 'video') {
-                    self.cameraAvailable = true;
-                }
-            });
+            self.sources.set(sources);
         });
 
         this.screenSharingAvailable = webrtcsupport.screenSharing;
@@ -108,7 +143,8 @@ module.exports = State.extend({
     },
 
     collections: {
-        streams: StreamCollection
+        streams: StreamCollection,
+        sources: SourceCollection
     },
 
     addLocalStream: function (stream, isScreen, owner) {
