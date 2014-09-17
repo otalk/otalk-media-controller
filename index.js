@@ -31,7 +31,7 @@ module.exports = State.extend({
 
         this.localStreams = new SubCollection(this.streams, {
             filter: function (stream) {
-                return !stream.ended && stream.isLocal && !stream.isScreen;
+                return !stream.ended && stream.isLocal;
             }
         });
 
@@ -333,7 +333,21 @@ module.exports = State.extend({
     },
 
     ensureLocalStreams: function (constraints, cb) {
-        if (!this.localStreams.length) {
+        var check = constraints || {};
+        var existing = false;
+
+        var wantAudio = !!check.audio;
+        var wantVideo = !!check.video;
+
+        for (var i = 0, len = this.localStreams.length; i < len; i++) {
+            var stream = this.localStreams.at(i);
+            if (!stream.isScreen && wantAudio === stream.hasAudio && wantVideo === stream.hasVideo) {
+                existing = true;
+                break;
+            }
+        }
+
+        if (!existing) {
             this.start(constraints, cb);
         } else {
             process.nextTick(cb);
