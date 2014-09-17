@@ -212,11 +212,11 @@ module.exports = State.extend({
                 simulcastAvailable = parseInt(navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./)[2], 10) >= 37;
             }
 
-            if (!!constraints.video) {
-                self.cameraAvailable = true;
-            }
-            if (!!constraints.audio) {
+            if (stream.getAudioTracks().length > 0) {
                 self.micAvailable = true;
+            }
+            if (stream.getVideoTracks().length > 0) {
+                self.cameraAvailable = true;
             }
 
             if (!!constraints.video && self.config.simulcast && simulcastAvailable) {
