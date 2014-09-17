@@ -113,9 +113,14 @@ module.exports = State.extend({
         // Check what kinds of input devices, if any, we have
         // FIXME: This device detection process will be changing in M38 to
         //        use enumerateDevices() instead (along with a new event).
-        window.MediaStreamTrack.getSources(function (sources) {
-            self.sources.set(sources);
-        });
+        if (window.MediaStreamTrack.getSources) {
+            self.unknownSources = false;
+            window.MediaStreamTrack.getSources(function (sources) {
+                self.sources.set(sources);
+            });
+        } else {
+            self.unknownSources = true;
+        }
 
         this.screenSharingAvailable = webrtcsupport.screenSharing;
     },
@@ -141,7 +146,8 @@ module.exports = State.extend({
         capturingScreen: 'boolean',
         micAvailable: 'boolean',
         cameraAvailable: 'boolean',
-        screenSharingAvailable: 'boolean'
+        screenSharingAvailable: 'boolean',
+        unknownSources: ['boolean', true, false]
     },
 
     collections: {
@@ -201,7 +207,17 @@ module.exports = State.extend({
                 return cb(err);
             }
 
-            var simulcastAvailable = parseInt(navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./)[2], 10) >= 37;
+            var simulcastAvailable = false;
+            if (webrtcsupport.prefix === 'webkit') {
+                simulcastAvailable = parseInt(navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./)[2], 10) >= 37;
+            }
+
+            if (!!constraints.video) {
+                self.cameraAvailable = true;
+            }
+            if (!!constraints.audio) {
+                self.micAvailable = true;
+            }
 
             if (!!constraints.video && self.config.simulcast && simulcastAvailable) {
                 constraints.audio = false;
