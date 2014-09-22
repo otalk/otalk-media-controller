@@ -32,25 +32,29 @@ module.exports = State.extend({
         this.localStreams = new SubCollection(this.streams, {
             filter: function (stream) {
                 return !stream.ended && stream.isLocal;
-            }
+            },
+            watched: ['ended']
         });
 
         this.localScreens = new SubCollection(this.streams, {
             filter: function (stream) {
                 return !stream.ended && stream.isLocal && stream.isScreen;
-            }
+            },
+            watched: ['ended']
         });
 
         this.remoteStreams = new SubCollection(this.streams, {
             filter: function (stream) {
                 return !stream.ended && stream.isRemote;
-            }
+            },
+            watched: ['ended']
         });
 
         this.claimedRemoteStreams = new SubCollection(this.streams, {
             filter: function (stream) {
                 return !stream.ended && stream.isRemote && stream.claimed;
-            }
+            },
+            watched: ['ended', 'claimed']
         });
             
         this.audioSources = new SubCollection(this.sources, {
