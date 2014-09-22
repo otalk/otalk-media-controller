@@ -13,6 +13,7 @@ A module for tracking all media streams in an app, both local and remote.
 - `localStreams` - `{Collection}`
 - `localScreens` - `{Collection}`
 - `remoteStreams` - `{Collection}`
+- `claimedRemoteStreams` - `{Collection}`
 - `audioSources` - `{Collection}`
 - `videoSources` - `{Collection}`
 - `streams` - `{Collection}`

@@ -47,6 +47,12 @@ module.exports = State.extend({
             }
         });
 
+        this.claimedRemoteStreams = new SubCollection(this.streams, {
+            filter: function (stream) {
+                return !stream.ended && stream.isRemote && stream.claimed;
+            }
+        });
+            
         this.audioSources = new SubCollection(this.sources, {
             filter: function (source) {
                 return source.kind === 'audio';
@@ -156,22 +162,26 @@ module.exports = State.extend({
     },
 
     addLocalStream: function (stream, isScreen, owner) {
+        owner = owner || {};
         this.streams.add({
             id: stream.id,
             origin: 'local',
             stream: stream,
             isScreen: isScreen,
-            owner: owner,
+            session: owner.session,
+            peer: owner.peer,
             audioMonitoring: this.config.audioMonitoring
         });
     },
 
     addRemoteStream: function (stream, owner) {
+        owner = owner || {};
         this.streams.add({
             id: stream.id,
             origin: 'remote',
             stream: stream,
-            owner: owner
+            session: owner.session,
+            peer: owner.peer
         });
     },
 
