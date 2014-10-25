@@ -120,17 +120,22 @@ module.exports = State.extend({
         });
 
 
-        // Check what kinds of input devices, if any, we have
-        // FIXME: This device detection process will be changing in M38 to
-        //        use enumerateDevices() instead (along with a new event).
-        if (window.MediaStreamTrack.getSources) {
-            self.unknownSources = false;
-            window.MediaStreamTrack.getSources(function (sources) {
-                self.sources.set(sources);
-            });
-        } else {
-            self.unknownSources = true;
-        }
+        this.unknownSources = true;
+        this.on('change:permissionGranted', function () {
+            if (!self.permissionGranted) {
+                self.unknownSources = true;
+            }
+
+            // Check what kinds of input devices, if any, we have
+            // FIXME: This device detection process will be changing in M38 to
+            //        use enumerateDevices() instead (along with a new event).
+            if (window.MediaStreamTrack.getSources) {
+                self.unknownSources = false;
+                window.MediaStreamTrack.getSources(function (sources) {
+                    self.sources.set(sources);
+                });
+            }
+        });
 
         this.screenSharingAvailable = webrtcsupport.screenSharing;
     },
@@ -157,7 +162,10 @@ module.exports = State.extend({
         micAvailable: 'boolean',
         cameraAvailable: 'boolean',
         screenSharingAvailable: 'boolean',
-        unknownSources: ['boolean', true, false]
+        unknownSources: ['boolean', true, false],
+        permissionGranted: 'boolean',
+        permissionBlocked: 'boolean',
+        preview: 'state'
     },
 
     collections: {
@@ -193,31 +201,12 @@ module.exports = State.extend({
         var self = this;
 
         cb = cb || function () {};
-
-        if (!constraints) {
-            constraints = JSON.parse(JSON.stringify(this.config.media || {
-                audio: true,
-                video: true
-            }));
-        }
-
-        if (constraints.audio === true && this.audioSources.get(this.preferredMic)) {
-            constraints.audio = {
-                optional: [
-                    {sourceId: this.preferredMic}
-                ]
-            };
-        }
-        if (constraints.video === true && this.videoSources.get(this.preferredCamera)) {
-            constraints.video = {
-                optional: [
-                    {sourceId: this.preferredCamera}
-                ]
-            };
-        }
+        constraints = this._prepConstraints(constraints);
 
         getUserMedia(constraints, function (err, stream) {
             if (err) {
+                self.permissionGranted = false;
+                self.permissionBlocked = true;
                 return cb(err);
             }
 
@@ -232,6 +221,9 @@ module.exports = State.extend({
             if (stream.getVideoTracks().length > 0) {
                 self.cameraAvailable = true;
             }
+
+            self.permissionGranted = true;
+            self.permissionBlocked = false;
 
             if (!!constraints.video && self.config.simulcast && simulcastAvailable) {
                 constraints.audio = false;
@@ -274,6 +266,43 @@ module.exports = State.extend({
         });
     },
 
+    startPreview: function (constraints, cb) {
+        var self = this;
+
+        this.stopPreview();
+
+        cb = cb || function () {};
+        constraints = this._prepConstraints(constraints);
+
+        getUserMedia(constraints, function (err, stream) {
+            if (err) {
+                self.permissionGranted = false;
+                self.permissionBlocked = true;
+                return cb(err);
+            }
+
+            if (stream.getAudioTracks().length > 0) {
+                self.micAvailable = true;
+            }
+            if (stream.getVideoTracks().length > 0) {
+                self.cameraAvailable = true;
+            }
+
+            self.permissionGranted = true;
+            self.permissionBlocked = false;
+
+            self.preview = new Stream({
+                id: stream.id,
+                origin: 'local',
+                stream: stream,
+                isScreen: false,
+                audioMonitoring: self.config.audioMonitoring
+            });
+
+            return cb();
+        });
+    },
+
     stop: function (stream) {
         var self = this;
 
@@ -294,6 +323,7 @@ module.exports = State.extend({
             this.localStreams.trigger('reset');
 
             this.stopScreenShare();
+            this.stopPreview();
         }
     },
 
@@ -315,6 +345,13 @@ module.exports = State.extend({
             });
 
             this.localScreens.trigger('reset');
+        }
+    },
+
+    stopPreview: function () {
+        if (this.preview) {
+            this.preview.stop();
+            this.unset('preview');
         }
     },
 
@@ -366,5 +403,32 @@ module.exports = State.extend({
         } else {
             process.nextTick(cb);
         }
+    },
+
+    _prepConstraints: function (constraints) {
+        if (!constraints) {
+            constraints = JSON.parse(JSON.stringify(this.config.media || {
+                audio: true,
+                video: true
+            }));
+        }
+
+        if (constraints.audio === true && this.audioSources.get(this.preferredMic)) {
+            constraints.audio = {
+                optional: [
+                    {sourceId: this.preferredMic}
+                ]
+            };
+        }
+
+        if (constraints.video === true && this.videoSources.get(this.preferredCamera)) {
+            constraints.video = {
+                optional: [
+                    {sourceId: this.preferredCamera}
+                ]
+            };
+        }
+
+        return constraints;
     }
 });
