@@ -163,9 +163,32 @@ module.exports = State.extend({
         cameraAvailable: 'boolean',
         screenSharingAvailable: 'boolean',
         unknownSources: ['boolean', true, false],
-        permissionGranted: 'boolean',
-        permissionBlocked: 'boolean',
-        preview: 'state'
+        preview: 'state',
+        deviceAccess: {
+            type: 'string',
+            values: ['granted', 'blocked', 'pending', '']
+        }
+    },
+
+    derived: {
+        permissionGranted: {
+            deps: ['deviceAccess'],
+            fn: function () {
+                return this.deviceAccess === 'granted';
+            }
+        },
+        permissionBlocked: {
+            deps: ['deviceAccess'],
+            fn: function () {
+                return this.deviceAccess === 'blocked';
+            }
+        },
+        permissionPending: {
+            deps: ['deviceAccess'],
+            fn: function () {
+                return this.deviceAccess === 'pending';
+            }
+        }
     },
 
     collections: {
@@ -203,10 +226,13 @@ module.exports = State.extend({
         cb = cb || function () {};
         constraints = this._prepConstraints(constraints);
 
+        this._permissionCheck();
+
         getUserMedia(constraints, function (err, stream) {
+            clearTimeout(self.permissionTimeout);
+
             if (err) {
-                self.permissionGranted = false;
-                self.permissionBlocked = true;
+                self.deviceAccess = 'blocked';
                 return cb(err);
             }
 
@@ -222,8 +248,7 @@ module.exports = State.extend({
                 self.cameraAvailable = true;
             }
 
-            self.permissionGranted = true;
-            self.permissionBlocked = false;
+            self.deviceAccess = 'granted';
 
             if (!!constraints.video && self.config.simulcast && simulcastAvailable) {
                 constraints.audio = false;
@@ -274,10 +299,13 @@ module.exports = State.extend({
         cb = cb || function () {};
         constraints = this._prepConstraints(constraints);
 
+        this._permissionCheck();
+
         getUserMedia(constraints, function (err, stream) {
+            clearTimeout(self.permissionTimeout);
+
             if (err) {
-                self.permissionGranted = false;
-                self.permissionBlocked = true;
+                self.deviceAccess = 'blocked';
                 return cb(err);
             }
 
@@ -288,8 +316,7 @@ module.exports = State.extend({
                 self.cameraAvailable = true;
             }
 
-            self.permissionGranted = true;
-            self.permissionBlocked = false;
+            self.deviceAccess = 'granted';
 
             self.preview = new Stream({
                 id: stream.id,
@@ -430,5 +457,18 @@ module.exports = State.extend({
         }
 
         return constraints;
+    },
+
+    _permissionCheck: function () {
+        var self = this;
+        if (this.permissionTimeout) {
+            return;
+        }
+
+        this.permissionTimeout = setTimeout(function () {
+            if (!self.permissionGranted  && !self.permissionBlocked) {
+                self.deviceAccess = 'pending';
+            }
+        }, 100);
     }
 });

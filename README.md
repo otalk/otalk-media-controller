@@ -23,6 +23,7 @@ A module for tracking all media streams in an app, both local and remote.
 - `preview` - `{Stream}`
 - `permissionBlocked` - `{Boolean}`
 - `permissionGranted` - `{Boolean}`
+- `permissionPending` - `{Boolean}`
 
 ## Methods
 
