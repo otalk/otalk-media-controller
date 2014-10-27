@@ -440,20 +440,49 @@ module.exports = State.extend({
             }));
         }
 
-        if (constraints.audio === true && this.audioSources.get(this.preferredMic)) {
+        if (constraints.audio === true) {
             constraints.audio = {
-                optional: [
-                    {sourceId: this.preferredMic}
-                ]
+                optional: []
             };
+
+            if (webrtcsupport.prefix === 'webkit') {
+                constraints.audio.optional = [
+                    {googEchoCancellation: true},
+                    {googAutoGainControl: true},
+                    {googNoiseSupression: true},
+                    {googHighpassFilter: true},
+                    {googAudioMirroring: false},
+                    {googNoisesuppression2: true},
+                    {googEchoCancellation2: true},
+                    {googAutoGainControl2: true},
+                    {chromeRenderToAssociatedSink: true}
+                ];
+            }
+
+            if (this.preferredMic) {
+                constraints.audio.optional.push({
+                    sourceId: this.preferredMic
+                });
+            }
         }
 
-        if (constraints.video === true && this.videoSources.get(this.preferredCamera)) {
+        if (constraints.video === true) {
             constraints.video = {
-                optional: [
-                    {sourceId: this.preferredCamera}
-                ]
+                optional: []
             };
+
+            if (webrtcsupport.prefix === 'webkit') {
+                constraints.video.optional = [
+                    {googLeakyBucket: true},
+                    {googNoiseReduction: false} // workaround for chrome 37, see https://code.google.com/p/webrtc/issues/detail?id=3807#c10
+                ];
+            }
+            
+            if (this.preferredCamera) {
+                constraints.video.optional.push({
+                    sourceId: this.preferredCamera
+                });
+            }
         }
 
         return constraints;
