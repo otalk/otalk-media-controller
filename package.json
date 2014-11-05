@@ -23,14 +23,14 @@
     "hark": "^1.1.1",
     "getusermedia": "^1.0.0",
     "getscreenmedia": "^1.2.2",
-    "otalk-model-media": "^1.6.0",
-    "otalk-media-stream-view": "^1.1.0",
+    "otalk-model-media": "^2.0.0",
     "webrtcsupport": "^1.1.0"
   },
   "devDependencies": {
     "ampersand-view": "^7.1.1",
     "beefy": "^2.1.1",
     "jshint": "^2.5.5",
+    "otalk-media-stream-view": "^2.0.0",
     "precommit-hook": "^1.0.7"
   },
   "scripts": {

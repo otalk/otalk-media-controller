@@ -24,6 +24,8 @@ A module for tracking all media streams in an app, both local and remote.
 - `permissionBlocked` - `{Boolean}`
 - `permissionGranted` - `{Boolean}`
 - `permissionPending` - `{Boolean}`
+- `defaultOptionalAudioConstraints` - `{Array}`
+- `defaultOptionalVideoConstraints` - `{Array}`
 
 ## Methods
 
@@ -31,10 +33,11 @@ A module for tracking all media streams in an app, both local and remote.
 - `addRemoteStream(stream, owner)`
 - `start(constraints, cb)`
 - `startScreenShare(cb)`
-- `startPreview(cb)`
+- `startPreview(constraints, cb)`
 - `stop(stream)`
 - `stopScreenShare(stream)`
 - `stopPreview()`
+- `acceptPreview()`
 - `pauseAudio()`
 - `pauseVideo()`
 - `resumeAudio()`
