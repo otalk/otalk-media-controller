@@ -4,6 +4,9 @@ A module for tracking all media streams in an app, both local and remote.
 
 ## Properties
 
+- `useAudioWhenAvailable` - `{Boolean}`
+- `useVideoWhenAvailable` - `{Boolean}`
+- `detectSpeaking` - `{Boolean}`
 - `capturingAudio` - `{Boolean}`
 - `capturingVideo` - `{Boolean}`
 - `capturingScreen` - `{Boolean}`
@@ -24,6 +27,7 @@ A module for tracking all media streams in an app, both local and remote.
 - `permissionBlocked` - `{Boolean}`
 - `permissionGranted` - `{Boolean}`
 - `permissionPending` - `{Boolean}`
+- `permissionDismissed` - `{Boolean}`
 - `defaultOptionalAudioConstraints` - `{Array}`
 - `defaultOptionalVideoConstraints` - `{Array}`
 

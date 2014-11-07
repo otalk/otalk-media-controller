@@ -120,20 +120,11 @@ module.exports = State.extend({
     },
 
     props: {
-        config: ['object', true, function () {
-            return {
-                media: {
-                    audio: true,
-                    video: true
-                },
-                audioMonitoring: {
-                    detectSpeaking: true,
-                    adjustMic: false
-                }
-            };
-        }],
+        useAudioWhenAvailable: ['boolean', true, true],
+        useVideoWhenAvailable: ['boolean', true, true],
         defaultOptionalAudioConstraints: ['array', true],
         defaultOptionalVideoConstraints: ['array', true],
+        detectSpeaking: ['boolean', true, true],
         preferredMic: 'string',
         preferredCamera: 'string',
         capturingAudio: 'boolean',
@@ -146,7 +137,7 @@ module.exports = State.extend({
         preview: 'state',
         deviceAccess: {
             type: 'string',
-            values: ['granted', 'blocked', 'pending', '']
+            values: ['granted', 'blocked', 'pending', 'dismissed', '']
         }
     },
 
@@ -166,7 +157,13 @@ module.exports = State.extend({
         permissionPending: {
             deps: ['deviceAccess'],
             fn: function () {
-                return this.deviceAccess === 'pending';
+                return this.deviceAccess === 'pending' || this.deviceAccess === 'dismissed';
+            }
+        },
+        permissionDismissed: {
+            deps: ['deviceAccess'],
+            fn: function () {
+                return this.deviceAccess === 'dismissed';
             }
         }
     },
@@ -191,7 +188,9 @@ module.exports = State.extend({
                 isScreen: isScreen,
                 session: owner.session,
                 peer: owner.peer,
-                audioMonitoring: this.config.audioMonitoring
+                audioMonitoring: {
+                    detectSpeaking: this.detectSpeaking
+                }
             });
         }
     },
@@ -214,7 +213,7 @@ module.exports = State.extend({
 
         this._startStream(constraints, function (err, stream) {
             if (err) {
-                return cb(err);
+                return self._handleError(err, cb);
             }
 
             self.addLocalStream(stream);
@@ -243,7 +242,7 @@ module.exports = State.extend({
 
         this._startStream(constraints, function (err, stream) {
             if (err) {
-                return cb(err);
+                return self._handleError(err, cb);
             }
 
             self.preview = new Stream({
@@ -251,7 +250,9 @@ module.exports = State.extend({
                 origin: 'local',
                 stream: stream,
                 isScreen: false,
-                audioMonitoring: self.config.audioMonitoring
+                audioMonitoring: {
+                    detectSpeaking: self.detectSpeaking
+                }
             });
 
             cb();
@@ -369,10 +370,10 @@ module.exports = State.extend({
 
     _prepConstraints: function (constraints) {
         if (!constraints) {
-            constraints = JSON.parse(JSON.stringify(this.config.media || {
-                audio: true,
-                video: true
-            }));
+            constraints = {
+                audio: this.useAudioWhenAvailable && this.micAvailable,
+                video: this.useVideoWhenAvailable && this.cameraAvailable
+            };
         }
 
         if (constraints.audio === true) {
@@ -413,9 +414,7 @@ module.exports = State.extend({
             clearTimeout(self.permissionTimeout);
 
             if (err) {
-                console.log('GUM ERROR:', err);
-                self.deviceAccess = 'blocked';
-                return cb(err);
+                return self._handleError(err, cb);
             }
 
             if (stream.getAudioTracks().length > 0) {
@@ -442,6 +441,33 @@ module.exports = State.extend({
                 self.deviceAccess = 'pending';
             }
         }, 100);
+    },
+
+    _handleError: function (err, cb) {
+        switch (err.name) {
+            case 'PermissionDeniedError':
+                this.deviceAccess = 'blocked';
+                break;
+            case 'PermissionDismissedError':
+                this.deviceAccess = 'dismissed';
+                break;
+            case 'DevicesNotFoundError':
+                this.deviceAccess = '';
+                this.cameraAvailable = false;
+                this.micAvailable = false;
+                break;
+            case 'ConstraintNotSatisfiedError':
+                this.deviceAccess = 'granted';
+                break;
+            case 'NotSupportedError':
+                this.unknownSources = false;
+                this.cameraAvailable = false;
+                this.micAvailable = false;
+                this.deviceAccess = '';
+                break;
+        }
+        console.error(err.name);
+        return cb(err);
     },
 
     _collectSources: function () {
