@@ -440,6 +440,7 @@ module.exports = State.extend({
             if (!self.permissionGranted  && !self.permissionBlocked) {
                 self.deviceAccess = 'pending';
             }
+            self.permissionTimeout = undefined;
         }, 100);
     },
 
