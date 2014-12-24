@@ -376,7 +376,7 @@ module.exports = State.extend({
             };
         }
 
-        if (constraints.audio === true) {
+        if (constraints.audio === true && webrtcsupport.prefix === 'webkit') {
             constraints.audio = {
                 optional: JSON.parse(JSON.stringify(this.defaultOptionalAudioConstraints))
             };
@@ -388,11 +388,11 @@ module.exports = State.extend({
             }
         }
 
-        if (constraints.video === true) {
+        if (constraints.video === true && webrtcsupport.prefix === 'webkit') {
             constraints.video = {
                 optional: JSON.parse(JSON.stringify(this.defaultOptionalVideoConstraints))
             };
-            
+
             if (this.preferredCamera) {
                 constraints.video.optional.push({
                     sourceId: this.preferredCamera
@@ -467,7 +467,6 @@ module.exports = State.extend({
                 this.deviceAccess = '';
                 break;
         }
-        console.error(err.name);
         return cb(err);
     },
 
