@@ -476,15 +476,25 @@ module.exports = State.extend({
         // Check what kinds of input devices, if any, we have
         // FIXME: This device detection process will be changing in M38 to
         //        use enumerateDevices() instead (along with a new event).
+        var cb = function (sources) {
+            self.sources.reset(sources);
+
+            // Because subcollections don't proxy the 'reset' event
+            self.videoSources.trigger('reset');
+            self.audioSources.trigger('reset');
+        }
         if (window.MediaStreamTrack && window.MediaStreamTrack.getSources) {
             self.unknownSources = !self.permissionGranted;
-            window.MediaStreamTrack.getSources(function (sources) {
-                self.sources.reset(sources);
-
-                // Because subcollections don't proxy the 'reset' event
-                self.videoSources.trigger('reset');
-                self.audioSources.trigger('reset');
-            });
+            window.MediaStreamTrack.getSources(cb);
+        } else {
+            // fake things
+            self.unknownSources = true;
+            window.setTimeout(cb, 0, 
+                [
+                    { label: '', facing: '', kind: 'audio', id: 'default' },
+                    { label: '', facing: '', kind: 'video', id: 'default' },
+                ]
+            );
         }
     }
 });
