@@ -491,8 +491,8 @@ module.exports = State.extend({
             self.unknownSources = true;
             window.setTimeout(cb, 0, 
                 [
-                    { label: '', facing: '', kind: 'audio', id: 'default' },
-                    { label: '', facing: '', kind: 'video', id: 'default' },
+                    { label: '', facing: '', kind: 'audio', id: 'defaultMicrophone' },
+                    { label: '', facing: '', kind: 'video', id: 'defaultCamera' },
                 ]
             );
         }
