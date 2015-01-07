@@ -5,7 +5,6 @@ var Stream = require('otalk-model-media');
 var State = require('ampersand-state');
 var Collection = require('ampersand-collection');
 var SubCollection = require('ampersand-subcollection');
-var uuid = require('node-uuid');
 
 
 var Source = State.extend({
@@ -174,21 +173,20 @@ module.exports = State.extend({
         sources: SourceCollection
     },
 
-    addLocalStream: function (stream, isScreen, owner) {
-        owner = owner || {};
+    addLocalStream: function (stream, isScreen, opts) {
+        opts = opts || {};
+
         if (stream.isState) {
             stream.origin = 'local';
             stream.isScreen = isScreen;
-            stream.owner = owner;
+            stream.session = opts.session;
             this.streams.add(stream);
         } else {
             this.streams.add({
-                id: (!stream.id || stream.id === 'default') ? uuid.v4() : stream.id,
                 origin: 'local',
                 stream: stream,
                 isScreen: isScreen,
-                session: owner.session,
-                peer: owner.peer,
+                session: opts.session,
                 audioMonitoring: {
                     detectSpeaking: this.detectSpeaking
                 }
@@ -196,15 +194,21 @@ module.exports = State.extend({
         }
     },
 
-    addRemoteStream: function (stream, owner) {
-        owner = owner || {};
-        this.streams.add({
-            id: (!stream.id || stream.id === 'default') ? uuid.v4() : stream.id,
-            origin: 'remote',
-            stream: stream,
-            session: owner.session,
-            peer: owner.peer
-        });
+    addRemoteStream: function (stream, opts) {
+        opts = opts || {};
+
+        if (stream.isState) {
+            stream.origin = 'remote';
+            stream.session = opts.session;
+            stream.peer = opts.peer;
+        } else {
+            this.streams.add({
+                origin: 'remote',
+                stream: stream,
+                session: opts.session,
+                peer: opts.peer
+            });
+        }
     },
 
     start: function (constraints, cb) {
@@ -247,7 +251,6 @@ module.exports = State.extend({
             }
 
             self.preview = new Stream({
-                id: (!stream.id || stream.id === 'default') ? uuid.v4() : stream.id,
                 origin: 'local',
                 stream: stream,
                 isScreen: false,
@@ -343,8 +346,11 @@ module.exports = State.extend({
         });
     },
 
-    getStream: function (id) {
-        return this.streams.get(id);
+    findStream: function (mediaStream) {
+        var matches = this.streams.filter(function (stream) {
+            return stream.stream === mediaStream;
+        });
+        return matches[0];
     },
 
     ensureLocalStreams: function (constraints, cb) {
