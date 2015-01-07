@@ -5,6 +5,7 @@ var Stream = require('otalk-model-media');
 var State = require('ampersand-state');
 var Collection = require('ampersand-collection');
 var SubCollection = require('ampersand-subcollection');
+var uuid = require('node-uuid');
 
 
 var Source = State.extend({
@@ -182,7 +183,7 @@ module.exports = State.extend({
             this.streams.add(stream);
         } else {
             this.streams.add({
-                id: stream.id,
+                id: (!stream.id || stream.id === 'default') ? uuid.v4() : stream.id,
                 origin: 'local',
                 stream: stream,
                 isScreen: isScreen,
@@ -198,7 +199,7 @@ module.exports = State.extend({
     addRemoteStream: function (stream, owner) {
         owner = owner || {};
         this.streams.add({
-            id: stream.id,
+            id: (!stream.id || stream.id === 'default') ? uuid.v4() : stream.id,
             origin: 'remote',
             stream: stream,
             session: owner.session,
@@ -246,7 +247,7 @@ module.exports = State.extend({
             }
 
             self.preview = new Stream({
-                id: stream.id,
+                id: (!stream.id || stream.id === 'default') ? uuid.v4() : stream.id,
                 origin: 'local',
                 stream: stream,
                 isScreen: false,
@@ -482,14 +483,14 @@ module.exports = State.extend({
             // Because subcollections don't proxy the 'reset' event
             self.videoSources.trigger('reset');
             self.audioSources.trigger('reset');
-        }
+        };
         if (window.MediaStreamTrack && window.MediaStreamTrack.getSources) {
             self.unknownSources = !self.permissionGranted;
             window.MediaStreamTrack.getSources(cb);
         } else {
             // fake things
             self.unknownSources = true;
-            window.setTimeout(cb, 0, 
+            window.setTimeout(cb, 0,
                 [
                     { label: '', facing: '', kind: 'audio', id: 'defaultMicrophone' },
                     { label: '', facing: '', kind: 'video', id: 'defaultCamera' },
