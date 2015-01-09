@@ -48,7 +48,7 @@ module.exports = State.extend({
             }
         });
 
-        this.localAudioOnlyStreams = new SubCollection(this.localSterams, {
+        this.localAudioOnlyStreams = new SubCollection(this.localStreams, {
             where: {
                 isAudio: true
             }
@@ -85,7 +85,7 @@ module.exports = State.extend({
             }
         });
 
-        this.claimedRemoteAudioOnlyStreams = new SubCollection(this.remoteAudioOnlytreams, {
+        this.claimedRemoteAudioOnlyStreams = new SubCollection(this.remoteAudioOnlyStreams, {
             where: {
                 claimed: true
             }
