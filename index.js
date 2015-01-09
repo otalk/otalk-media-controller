@@ -36,11 +36,22 @@ module.exports = State.extend({
             watched: ['ended']
         });
 
-        this.localScreens = new SubCollection(this.streams, {
-            filter: function (stream) {
-                return !stream.ended && stream.isLocal && stream.isScreen;
-            },
-            watched: ['ended']
+        this.localScreens = new SubCollection(this.localStreams, {
+            where: {
+                isScreen: true
+            }
+        });
+
+        this.localVideoStreams = new SubCollection(this.localStreams, {
+            where: {
+                isVideo: true
+            }
+        });
+
+        this.localAudioOnlyStreams = new SubCollection(this.localSterams, {
+            where: {
+                isAudio: true
+            }
         });
 
         this.remoteStreams = new SubCollection(this.streams, {
@@ -50,13 +61,36 @@ module.exports = State.extend({
             watched: ['ended']
         });
 
-        this.claimedRemoteStreams = new SubCollection(this.streams, {
-            filter: function (stream) {
-                return !stream.ended && stream.isRemote && stream.claimed;
-            },
-            watched: ['ended', 'claimed']
+        this.remoteVideoStreams = new SubCollection(this.remoteStreams, {
+            where: {
+                isVideo: true
+            }
         });
-            
+
+        this.remoteAudioOnlyStreams = new SubCollection(this.remoteStreams, {
+            where: {
+                isAudio: true
+            }
+        });
+
+        this.claimedRemoteStreams = new SubCollection(this.remoteStreams, {
+            where: {
+                claimed: true
+            }
+        });
+ 
+        this.claimedRemoteVideoStreams = new SubCollection(this.remoteVideoStreams, {
+            where: {
+                claimed: true
+            }
+        });
+
+        this.claimedRemoteAudioOnlyStreams = new SubCollection(this.remoteAudioOnlytreams, {
+            where: {
+                claimed: true
+            }
+        });
+
         this.audioSources = new SubCollection(this.sources, {
             filter: function (source) {
                 return source.kind === 'audio' || source.kind === 'audioinput';

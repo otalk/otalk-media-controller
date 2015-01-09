@@ -15,8 +15,14 @@ A module for tracking all media streams in an app, both local and remote.
 - `screenSharingAvailable` - `{Boolean}`
 - `localStreams` - `{Collection}`
 - `localScreens` - `{Collection}`
+- `localVideoStreams` - `{Collection}`
+- `localAudioOnlyStreams` - `{Collection}`
 - `remoteStreams` - `{Collection}`
+- `remoteVideoStreams` - `{Collection}`
+- `remoteAudioOnlyStreams` - `{Collection}`
 - `claimedRemoteStreams` - `{Collection}`
+- `claimedRemoteVideoStreams` - `{Collection}`
+- `claimedRemoteAudioOnlyStreams` - `{Collection}`
 - `audioSources` - `{Collection}`
 - `videoSources` - `{Collection}`
 - `streams` - `{Collection}`
