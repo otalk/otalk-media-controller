@@ -1,6 +1,6 @@
 {
   "name": "otalk-media-controller",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "Controller for managing local and remote media streams.",
   "main": "index.js",
   "repository": {
