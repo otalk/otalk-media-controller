@@ -78,7 +78,7 @@ module.exports = State.extend({
                 claimed: true
             }
         });
- 
+
         this.claimedRemoteVideoStreams = new SubCollection(this.remoteVideoStreams, {
             where: {
                 claimed: true
@@ -145,10 +145,10 @@ module.exports = State.extend({
 
         this.unknownSources = true;
         this._collectSources();
-        
+
         // Gather sources again once we have permission so we can see the
         // device labels.
-        this.on('change:permissionGranted', this._collectSources.bind(this));
+        this.on('change:cameraPermissionGranted change:micPermissionGranted', this._collectSources.bind(this));
 
         this.screenSharingAvailable = webrtcsupport.screenSharing;
     },
@@ -169,37 +169,65 @@ module.exports = State.extend({
         screenSharingAvailable: 'boolean',
         unknownSources: ['boolean', true, false],
         preview: 'state',
-        deviceAccess: {
+        cameraAccess: {
             type: 'string',
-            values: ['granted', 'blocked', 'pending', 'dismissed', '']
+            values: ['granted', 'denied', 'pending', 'dismissed', '']
+        },
+        micAccess: {
+            type: 'string',
+            values: ['granted', 'denied', 'pending', 'dismissed', '']
         }
     },
 
     derived: {
-        permissionGranted: {
-            deps: ['deviceAccess'],
+        cameraPermissionGranted: {
+            deps: ['cameraAccess'],
             fn: function () {
-                return this.deviceAccess === 'granted';
+                return this.cameraAccess === 'granted';
             }
         },
-        permissionBlocked: {
-            deps: ['deviceAccess'],
+        micPermissionGranted: {
+            deps: ['micAccess'],
             fn: function () {
-                return this.deviceAccess === 'blocked';
+                return this.micAccess === 'granted';
             }
         },
-        permissionPending: {
-            deps: ['deviceAccess'],
+        cameraPermissionDenied: {
+            deps: ['cameraAccess'],
             fn: function () {
-                return this.deviceAccess === 'pending' || this.deviceAccess === 'dismissed';
+                return this.cameraAccess === 'denied';
             }
         },
-        permissionDismissed: {
-            deps: ['deviceAccess'],
+        micPermissionDenied: {
+            deps: ['micAccess'],
             fn: function () {
-                return this.deviceAccess === 'dismissed';
+                return this.micAccess === 'denied';
             }
-        }
+        },
+        cameraPermissionPending: {
+            deps: ['cameraAccess'],
+            fn: function () {
+                return (this.cameraAccess === 'pending') || this.cameraPermissionDismissed;
+            }
+        },
+        micPermissionPending: {
+            deps: ['micAccess'],
+            fn: function () {
+                return (this.micAccess === 'pending') || this.micPermissionDismissed;
+            }
+        },
+        cameraPermissionDismissed: {
+            deps: ['cameraAccess'],
+            fn: function () {
+                return this.cameraAccess === 'dismissed';
+            }
+        },
+        micPermissionDismissed: {
+            deps: ['micAccess'],
+            fn: function () {
+                return this.micAccess === 'dismissed';
+            }
+        },
     },
 
     collections: {
@@ -251,24 +279,25 @@ module.exports = State.extend({
         cb = cb || function () {};
 
         this._startStream(constraints, function (err, stream) {
-            if (err) {
-                return self._handleError(err, cb);
+            if (!err) {
+                self.addLocalStream(stream);
             }
 
-            self.addLocalStream(stream);
-            cb();
+            cb(err, stream);
         });
     },
 
     startScreenShare: function (cb) {
         var self = this;
+
+        cb = cb || function () {};
+
         getScreenMedia(function (err, stream) {
             if (!err) {
                 self.addLocalStream(stream, true);
             }
-            if (cb) {
-                return cb(err, stream);
-            }
+
+            cb(err, stream);
         });
     },
 
@@ -281,7 +310,7 @@ module.exports = State.extend({
 
         this._startStream(constraints, function (err, stream) {
             if (err) {
-                return self._handleError(err, cb);
+                return cb(err);
             }
 
             self.preview = new Stream({
@@ -293,7 +322,7 @@ module.exports = State.extend({
                 }
             });
 
-            cb();
+            cb(null, stream);
         });
     },
 
@@ -449,63 +478,115 @@ module.exports = State.extend({
 
         constraints = this._prepConstraints(constraints);
 
-        this._permissionCheck();
+        var wantMicAccess = !!constraints.audio;
+        var wantCameraAccess = !!constraints.video;
+
+        if (wantMicAccess) {
+            this.micAccess = 'pending';
+        }
+        if (wantCameraAccess) {
+            this.cameraAccess = 'pending';
+        }
+
+        this._permissionCheck(constraints);
 
         getUserMedia(constraints, function (err, stream) {
             clearTimeout(self.permissionTimeout);
 
             if (err) {
-                return self._handleError(err, cb);
+                return self._handleError(err, constraints, cb);
             }
 
             if (stream.getAudioTracks().length > 0) {
                 self.micAvailable = true;
+                self.micAccess = 'granted';
+            } else if (wantMicAccess) {
+                if (self.audioSources.length) {
+                    self.micAccess = 'denied';
+                } else {
+                    self.micAccess = '';
+                }
             }
             if (stream.getVideoTracks().length > 0) {
                 self.cameraAvailable = true;
+                self.cameraAccess = 'granted';
+            } else if (wantCameraAccess) {
+                if (self.videoSources.length) {
+                    self.cameraAccess = 'denied';
+                } else {
+                    self.cameraAccess = '';
+                }
             }
-
-            self.deviceAccess = 'granted';
 
             cb(err, stream);
         });
     },
 
-    _permissionCheck: function () {
+    _permissionCheck: function (constraints) {
         var self = this;
         if (this.permissionTimeout) {
             return;
         }
 
+        var wantMicAccess = !!constraints.audio;
+        var wantCameraAccess = !!constraints.video;
+
         this.permissionTimeout = setTimeout(function () {
-            if (!self.permissionGranted  && !self.permissionBlocked) {
-                self.deviceAccess = 'pending';
+            if (wantMicAccess && !self.micPermissionGranted && !self.micPermissionDenied) {
+                self.micAccess = 'pending';
+            }
+            if (wantCameraAccess && !self.cameraPermissionGranted && !self.cameraPermissionDenied) {
+                self.cameraAccess = 'pending';
             }
             self.permissionTimeout = undefined;
         }, 100);
     },
 
-    _handleError: function (err, cb) {
+    _handleError: function (err, constraints, cb) {
+        var wantMicAccess = !!constraints.audio;
+        var wantCameraAccess = !!constraints.video;
+
         switch (err.name) {
             case 'PermissionDeniedError':
-                this.deviceAccess = 'blocked';
+                if (wantCameraAccess) {
+                    this.cameraAccess = 'denied';
+                }
+                if (wantMicAccess) {
+                    this.micAccess = 'denied';
+                }
                 break;
             case 'PermissionDismissedError':
-                this.deviceAccess = 'dismissed';
+                if (wantCameraAccess) {
+                    this.cameraAccess = 'dismissed';
+                }
+                if (wantMicAccess) {
+                    this.micAccess = 'dismissed';
+                }
                 break;
             case 'DevicesNotFoundError':
-                this.deviceAccess = '';
-                this.cameraAvailable = false;
-                this.micAvailable = false;
+                if (wantCameraAccess) {
+                    this.cameraAvailable = false;
+                    this.cameraAccess = 'denied';
+                }
+                if (wantMicAccess) {
+                    this.micAvailable = false;
+                    this.micAccess = 'denied';
+                }
                 break;
             case 'ConstraintNotSatisfiedError':
-                this.deviceAccess = 'granted';
+                if (wantCameraAccess) {
+                    this.cameraAccess = '';
+                }
+                if (wantMicAccess) {
+                    this.micAccess = '';
+                }
                 break;
             case 'NotSupportedError':
                 this.unknownSources = false;
                 this.cameraAvailable = false;
                 this.micAvailable = false;
-                this.deviceAccess = '';
+                this.cameraAccess = '';
+                this.micAccess = '';
                 break;
         }
         return cb(err);
@@ -525,7 +606,7 @@ module.exports = State.extend({
             self.audioSources.trigger('reset');
         };
         if (window.MediaStreamTrack && window.MediaStreamTrack.getSources) {
-            self.unknownSources = !self.permissionGranted;
+            self.unknownSources = !self.cameraPermissionGranted && !self.micPermissionGranted;
             window.MediaStreamTrack.getSources(cb);
         } else {
             // fake things
