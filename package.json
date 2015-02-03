@@ -24,7 +24,7 @@
     "getusermedia": "^1.0.0",
     "hark": "^1.1.1",
     "node-uuid": "^1.4.2",
-    "otalk-model-media": "^2.0.0",
+    "otalk-model-media": "^3.0.0",
     "webrtcsupport": "^1.1.0"
   },
   "devDependencies": {
