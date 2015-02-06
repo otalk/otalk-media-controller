@@ -581,6 +581,7 @@ module.exports = State.extend({
                     this.micAccess = '';
                 }
                 break;
+            case 'NoMediaRequestedError':
             case 'NotSupportedError':
                 this.unknownSources = false;
                 this.cameraAvailable = false;
