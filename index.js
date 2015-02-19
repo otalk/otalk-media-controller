@@ -287,9 +287,12 @@ module.exports = State.extend({
         });
     },
 
-    startScreenShare: function (cb, opts) {
+    startScreenShare: function (opts, cb) {
         var self = this;
 
+        if (arguments.length === 1) {
+            cb = opts;
+        }
         cb = cb || function () {};
 
         getScreenMedia(function (err, stream) {
