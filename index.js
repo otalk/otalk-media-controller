@@ -287,17 +287,32 @@ module.exports = State.extend({
         });
     },
 
-    startScreenShare: function (cb) {
+    startScreenShare: function (opts, cb) {
         var self = this;
 
+        if (arguments.length === 1) {
+            cb = opts;
+        }
         cb = cb || function () {};
 
         getScreenMedia(function (err, stream) {
             if (!err) {
-                self.addLocalStream(stream, true);
+                if (opts && opts.audio) {
+                    self._startStream({audio: true, video: false}, function (err, audioStream) {
+                        if (err) {
+                            if (cb) {
+                                cb(err);
+                            }
+                            return;
+                        }
+                        stream.addTrack(audioStream.getAudioTracks()[0]);
+                        self.addLocalStream(stream, true);
+                    });
+                } else {
+                    self.addLocalStream(stream, true);
+                    cb(err, stream);
+                }
             }
-
-            cb(err, stream);
         });
     },
 
