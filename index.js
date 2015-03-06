@@ -307,6 +307,7 @@ module.exports = State.extend({
                         }
                         stream.addTrack(audioStream.getAudioTracks()[0]);
                         self.addLocalStream(stream, true);
+                        cb(null, stream);
                     });
                 } else {
                     self.addLocalStream(stream, true);
