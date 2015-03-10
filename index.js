@@ -296,23 +296,22 @@ module.exports = State.extend({
         cb = cb || function () {};
 
         getScreenMedia(function (err, stream) {
-            if (!err) {
-                if (opts && opts.audio) {
-                    self._startStream({audio: true, video: false}, function (err, audioStream) {
-                        if (err) {
-                            if (cb) {
-                                cb(err);
-                            }
-                            return;
-                        }
-                        stream.addTrack(audioStream.getAudioTracks()[0]);
-                        self.addLocalStream(stream, true);
-                        cb(null, stream);
-                    });
-                } else {
+            if (err) {
+                return cb(err);
+            }
+
+            if (opts && opts.audio) {
+                self._startStream({audio: true, video: false}, function (err, audioStream) {
+                    if (err) {
+                        return cb(err);
+                    }
+                    stream.addTrack(audioStream.getAudioTracks()[0]);
                     self.addLocalStream(stream, true);
-                    cb(err, stream);
-                }
+                    cb(null, stream);
+                });
+            } else {
+                self.addLocalStream(stream, true);
+                cb(err, stream);
             }
         });
     },
