@@ -4,7 +4,7 @@ var getScreenMedia = require('getscreenmedia');
 var Stream = require('otalk-model-media');
 var State = require('ampersand-state');
 var Collection = require('ampersand-collection');
-var SubCollection = require('ampersand-subcollection');
+var SubCollection = require('ampersand-filtered-subcollection');
 
 
 var Source = State.extend({
