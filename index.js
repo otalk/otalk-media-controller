@@ -3,8 +3,11 @@ var getUserMedia = require('getusermedia');
 var getScreenMedia = require('getscreenmedia');
 var Stream = require('otalk-model-media');
 var State = require('ampersand-state');
+
+var LodashMixin = require('ampersand-collection-lodash-mixin');
 var Collection = require('ampersand-collection');
-var SubCollection = require('ampersand-filtered-subcollection');
+var FilteredCollection = require('ampersand-filtered-subcollection');
+var SubCollection = FilteredCollection.extend(LodashMixin);
 
 
 var Source = State.extend({
