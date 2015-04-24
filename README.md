@@ -10,9 +10,6 @@ A module for tracking all media streams in an app, both local and remote.
 - `capturingAudio` - `{Boolean}`
 - `capturingVideo` - `{Boolean}`
 - `capturingScreen` - `{Boolean}`
-- `micAvailable` - `{Boolean}`
-- `cameraAvailable` - `{Boolean}`
-- `screenSharingAvailable` - `{Boolean}`
 - `localStreams` - `{Collection}`
 - `localScreens` - `{Collection}`
 - `localVideoStreams` - `{Collection}`
@@ -23,33 +20,24 @@ A module for tracking all media streams in an app, both local and remote.
 - `claimedRemoteStreams` - `{Collection}`
 - `claimedRemoteVideoStreams` - `{Collection}`
 - `claimedRemoteAudioOnlyStreams` - `{Collection}`
-- `audioSources` - `{Collection}`
-- `videoSources` - `{Collection}`
 - `streams` - `{Collection}`
-- `sources` - `{Collection}`
-- `preferredMic` - `{String}`
-- `preferredCamera` - `{String}`
 - `preview` - `{Stream}`
-- `permissionBlocked` - `{Boolean}`
-- `permissionGranted` - `{Boolean}`
-- `permissionPending` - `{Boolean}`
-- `permissionDismissed` - `{Boolean}`
 - `defaultOptionalAudioConstraints` - `{Array}`
 - `defaultOptionalVideoConstraints` - `{Array}`
 
 ## Methods
 
-- `addLocalStream(stream, isScreen, owner)`
-- `addRemoteStream(stream, owner)`
+- `addLocalStream(stream, isScreen, opts)`
+- `addRemoteStream(stream, opts)`
 - `start(constraints, cb)`
-- `startScreenShare(cb)`
+- `startScreenShare([constraints,] cb)`
 - `startPreview(constraints, cb)`
 - `stop(stream)`
 - `stopScreenShare(stream)`
 - `stopPreview()`
 - `acceptPreview()`
-- `pauseAudio()`
-- `pauseVideo()`
-- `resumeAudio()`
-- `resumeVideo()`
+- `muteAudio()`
+- `muteVideo()`
+- `playAudio()`
+- `playVideo()`
 - `ensureLocalStreams(constraints, cb)`

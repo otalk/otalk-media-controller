@@ -1,53 +1,139 @@
-var webrtcsupport = require('webrtcsupport');
+var WebRTC = require('webrtcsupport');
 var getUserMedia = require('getusermedia');
 var getScreenMedia = require('getscreenmedia');
-var Stream = require('otalk-model-media');
-var State = require('ampersand-state');
 
+var State = require('ampersand-state');
 var LodashMixin = require('ampersand-collection-lodash-mixin');
 var Collection = require('ampersand-collection');
 var FilteredCollection = require('ampersand-filtered-subcollection');
 var SubCollection = FilteredCollection.extend(LodashMixin);
 
+var Stream = require('otalk-model-media');
+var DeviceManager = require('otalk-media-devices');
 
-var Source = State.extend({
-    props: {
-        id: 'string',
-        label: 'string',
-        kind: 'string',
-        facing: ''
-    }
-});
-
-var StreamCollection = Collection.extend({
-    model: Stream
-});
-
-var SourceCollection = Collection.extend({
-    model: Source
-});
 
 
 module.exports = State.extend({
+
+    props: {
+        defaultOptionalAudioConstraints: ['array', true],
+        defaultOptionalVideoConstraints: ['array', true],
+
+        capturingAudio: 'boolean',
+        capturingVideo: 'boolean',
+        capturingScreen: 'boolean',
+
+        detectSpeaking: ['boolean', true, true],
+        audioMonitoring: {
+            type: 'object',
+            required: true,
+            default: function () {
+                return {
+                    threshold: -50,
+                    interval: 100,
+                    smoothing: 0.1
+                };
+            }
+        },
+
+        // Holding area for a local stream before adding it
+        // to our collection. Allows for the creation of
+        // "haircheck" preview UIs to let the user approve
+        // of the stream before we start using it.
+        preview: 'state',
+
+        // The various categories of streams
+        localStreams: 'collection',
+        localScreens: 'collection',
+        localVideoStreams: 'collection',
+        localAudioOnlyStreams: 'collection',
+        remoteStreams: 'collection',
+        remoteVideoStreams: 'collection',
+        remoteAudioOnlyStreams: 'collection',
+
+        // For multi-party applications using remote streams,
+        // we track "claimed" streams which are just streams
+        // that have a peer assigned as an owner.
+        claimedRemoteStreams: 'collection',
+        claimedRemoteVideoStreams: 'collection',
+        claimedRemoteAudioOnlyStreams: 'collection'
+    },
+
+    session: {
+        _localAudioCount: 'number',
+        _localVideoCount: 'number',
+        _localScreenCount: 'number'
+    },
+
+    children: {
+        devices: DeviceManager
+    },
+
+    collections: {
+        streams: Collection.extend({ model: Stream })
+    },
+
     initialize: function () {
         var self = this;
 
+        this.initializeSubCollections();
+
+        this.localVideoStreams.on('add remove reset', function () {
+
+        });
+
+        this.localStreams.bind('add remove reset', function () {
+            var updates = {
+                capturingAudio: false,
+                capturingVideo: false,
+                capturingScreeen: false
+            };
+
+            self.localStreams.forEach(function (stream) {
+                if (stream.hasAudio) {
+                    updates.capturingAudio = true;
+                }
+                if (stream.hasVideo && !stream.isScreen) {
+                    updates.capturingVideo = true;
+                }
+                if (stream.isScreen && stream.hasVideo) {
+                    updates.capturingScreen = true;
+                }
+            });
+
+            self.set(updates);
+        });
+
+        this.localScreens.bind('add remove reset', function () {
+            self.capturingScreen = !!self.localScreens.length;
+        });
+
+        this.streams.bind('change:isEnded', function (stream) {
+            if (stream.isEnded) {
+                self.streams.remove(stream);
+            }
+        });
+    },
+
+    initializeSubCollections: function () {
         this.localStreams = new SubCollection(this.streams, {
             filter: function (stream) {
-                return !stream.ended && stream.isLocal;
+                return !stream.isEnded && stream.isLocal;
             },
-            watched: ['ended']
+            watched: [ 'isEnded' ]
         });
 
         this.localScreens = new SubCollection(this.localStreams, {
             where: {
+                isVideo: true,
                 isScreen: true
             }
         });
 
         this.localVideoStreams = new SubCollection(this.localStreams, {
             where: {
-                isVideo: true
+                isVideo: true,
+                isScreen: false
             }
         });
 
@@ -59,9 +145,9 @@ module.exports = State.extend({
 
         this.remoteStreams = new SubCollection(this.streams, {
             filter: function (stream) {
-                return !stream.ended && stream.isRemote;
+                return !stream.isEnded && stream.isRemote;
             },
-            watched: ['ended']
+            watched: [ 'isEnded' ]
         });
 
         this.remoteVideoStreams = new SubCollection(this.remoteStreams, {
@@ -72,170 +158,28 @@ module.exports = State.extend({
 
         this.remoteAudioOnlyStreams = new SubCollection(this.remoteStreams, {
             where: {
-                isAudio: true
+                isAudioOnly: true
             }
         });
 
         this.claimedRemoteStreams = new SubCollection(this.remoteStreams, {
             where: {
-                claimed: true
+                isClaimed: true
             }
         });
 
-        this.claimedRemoteVideoStreams = new SubCollection(this.remoteVideoStreams, {
+        this.claimedRemoteVideoStreams = new SubCollection(this.claimedRemoteStreams, {
             where: {
-                claimed: true
+                isVideo: true
             }
         });
 
-        this.claimedRemoteAudioOnlyStreams = new SubCollection(this.remoteAudioOnlyStreams, {
+        this.claimedRemoteAudioOnlyStreams = new SubCollection(this.claimedRemoteStreams, {
             where: {
-                claimed: true
+                isAudioOnly: true
             }
         });
 
-        this.audioSources = new SubCollection(this.sources, {
-            filter: function (source) {
-                return source.kind === 'audio' || source.kind === 'audioinput';
-            }
-        });
-
-        this.videoSources = new SubCollection(this.sources, {
-            filter: function (source) {
-                return source.kind === 'video' || source.kind === 'videoinput';
-            }
-        });
-
-        this.localStreams.bind('add remove reset', function () {
-            var updates = {
-                capturingAudio: false,
-                capturingVideo: false
-            };
-
-            self.localStreams.forEach(function (stream) {
-                if (stream.hasAudio) {
-                    updates.capturingAudio = true;
-                }
-                if (stream.isVideo && !stream.isScreen) {
-                    updates.capturingVideo = true;
-                }
-            });
-
-            self.set(updates);
-        });
-
-        this.localScreens.bind('add remove reset', function () {
-            self.capturingScreen = !!self.localScreens.length;
-        });
-
-        this.streams.bind('change:ended', function (stream) {
-            if (stream.ended) {
-                self.streams.remove(stream);
-            }
-        });
-
-        this.audioSources.bind('add remove reset', function () {
-            if (self.audioSources.length) {
-                self.micAvailable = true;
-            }
-        });
-
-        this.videoSources.bind('add remove reset', function () {
-            if (self.videoSources.length) {
-                self.cameraAvailable = true;
-            }
-        });
-
-        this.unknownSources = true;
-        this._collectSources();
-
-        // Gather sources again once we have permission so we can see the
-        // device labels.
-        this.on('change:cameraPermissionGranted change:micPermissionGranted', this._collectSources.bind(this));
-
-        this.screenSharingAvailable = webrtcsupport.screenSharing;
-    },
-
-    props: {
-        useAudioWhenAvailable: ['boolean', true, true],
-        useVideoWhenAvailable: ['boolean', true, true],
-        defaultOptionalAudioConstraints: ['array', true],
-        defaultOptionalVideoConstraints: ['array', true],
-        detectSpeaking: ['boolean', true, true],
-        preferredMic: 'string',
-        preferredCamera: 'string',
-        capturingAudio: 'boolean',
-        capturingVideo: 'boolean',
-        capturingScreen: 'boolean',
-        micAvailable: 'boolean',
-        cameraAvailable: 'boolean',
-        screenSharingAvailable: 'boolean',
-        unknownSources: ['boolean', true, false],
-        preview: 'state',
-        cameraAccess: {
-            type: 'string',
-            values: ['granted', 'denied', 'pending', 'dismissed', '']
-        },
-        micAccess: {
-            type: 'string',
-            values: ['granted', 'denied', 'pending', 'dismissed', '']
-        }
-    },
-
-    derived: {
-        cameraPermissionGranted: {
-            deps: ['cameraAccess'],
-            fn: function () {
-                return this.cameraAccess === 'granted';
-            }
-        },
-        micPermissionGranted: {
-            deps: ['micAccess'],
-            fn: function () {
-                return this.micAccess === 'granted';
-            }
-        },
-        cameraPermissionDenied: {
-            deps: ['cameraAccess'],
-            fn: function () {
-                return this.cameraAccess === 'denied';
-            }
-        },
-        micPermissionDenied: {
-            deps: ['micAccess'],
-            fn: function () {
-                return this.micAccess === 'denied';
-            }
-        },
-        cameraPermissionPending: {
-            deps: ['cameraAccess'],
-            fn: function () {
-                return (this.cameraAccess === 'pending') || this.cameraPermissionDismissed;
-            }
-        },
-        micPermissionPending: {
-            deps: ['micAccess'],
-            fn: function () {
-                return (this.micAccess === 'pending') || this.micPermissionDismissed;
-            }
-        },
-        cameraPermissionDismissed: {
-            deps: ['cameraAccess'],
-            fn: function () {
-                return this.cameraAccess === 'dismissed';
-            }
-        },
-        micPermissionDismissed: {
-            deps: ['micAccess'],
-            fn: function () {
-                return this.micAccess === 'dismissed';
-            }
-        },
-    },
-
-    collections: {
-        streams: StreamCollection,
-        sources: SourceCollection
     },
 
     addLocalStream: function (stream, isScreen, opts) {
@@ -245,16 +189,13 @@ module.exports = State.extend({
             stream.origin = 'local';
             stream.isScreen = isScreen;
             stream.session = opts.session;
-            this.streams.add(stream);
+            return this.streams.add(stream);
         } else {
-            this.streams.add({
+            return this.streams.add({
                 origin: 'local',
                 stream: stream,
                 isScreen: isScreen,
-                session: opts.session,
-                audioMonitoring: {
-                    detectSpeaking: this.detectSpeaking
-                }
+                session: opts.session
             });
         }
     },
@@ -266,8 +207,9 @@ module.exports = State.extend({
             stream.origin = 'remote';
             stream.session = opts.session;
             stream.peer = opts.peer;
+            return this.streams.add(stream);
         } else {
-            this.streams.add({
+            return this.streams.add({
                 origin: 'remote',
                 stream: stream,
                 session: opts.session,
@@ -282,34 +224,51 @@ module.exports = State.extend({
         cb = cb || function () {};
 
         this._startStream(constraints, function (err, stream) {
-            if (!err) {
-                self.addLocalStream(stream);
+            if (err) {
+                return cb(err);
+            }
+
+            var localStream = self.addLocalStream(stream);
+            if (self.detectSpeaking && localStream.hasAudio) {
+                localStream.startVolumeMonitor(self.audioMonitoring);
             }
 
             cb(err, stream);
         });
     },
 
-    startScreenShare: function (opts, cb) {
+    startScreenShare: function (constraints, cb) {
         var self = this;
 
         if (arguments.length === 1) {
-            cb = opts;
+            cb = constraints;
+            constraints = {};
         }
         cb = cb || function () {};
+
+        constraints = this._prepConstraints(constraints);
 
         getScreenMedia(function (err, stream) {
             if (err) {
                 return cb(err);
             }
 
-            if (opts && opts.audio) {
-                self._startStream({audio: true, video: false}, function (err, audioStream) {
+            if (constraints.audio) {
+                self._startStream({
+                    audio: constraints.audio,
+                    video: false
+                }, function (err, audioStream) {
                     if (err) {
                         return cb(err);
                     }
+
                     stream.addTrack(audioStream.getAudioTracks()[0]);
-                    self.addLocalStream(stream, true);
+
+                    var localStream = self.addLocalStream(stream, true);
+                    if (self.detectSpeaking && localStream.hasAudio) {
+                        localStream.startVolumeMonitor(self.audioMonitoring);
+                    }
+
                     cb(null, stream);
                 });
             } else {
@@ -335,10 +294,11 @@ module.exports = State.extend({
                 origin: 'local',
                 stream: stream,
                 isScreen: false,
-                audioMonitoring: {
-                    detectSpeaking: self.detectSpeaking
-                }
             });
+
+            if (self.detectSpeaking && self.preview.hasAudio) {
+                self.preview.startVolumeMonitor(self.audioMonitoring);
+            }
 
             cb(null, stream);
         });
@@ -403,15 +363,15 @@ module.exports = State.extend({
         }
     },
 
-    pauseAudio: function () {
+    muteAudio: function () {
         this.localStreams.forEach(function (stream) {
-            stream.pauseAudio();
+            stream.muteAudio();
         });
     },
 
-    pauseVideo: function () {
+    muteVideo: function () {
         this.localStreams.forEach(function (stream) {
-            stream.pauseVideo();
+            stream.muteVideo();
         });
     },
 
@@ -459,31 +419,37 @@ module.exports = State.extend({
     _prepConstraints: function (constraints) {
         if (!constraints) {
             constraints = {
-                audio: this.useAudioWhenAvailable && this.micAvailable,
-                video: this.useVideoWhenAvailable && this.cameraAvailable
+                audio: this.useAudioWhenAvailable,
+                video: this.useVideoWhenAvailable
             };
         }
 
-        if (constraints.audio === true && webrtcsupport.prefix === 'webkit') {
+        if (WebRTC.prefix !== 'webkit') {
+            return constraints;
+        }
+
+        // Don't override if detailed constraints were explicitly given
+        if (constraints.audio === true) {
             constraints.audio = {
                 optional: JSON.parse(JSON.stringify(this.defaultOptionalAudioConstraints))
             };
 
-            if (this.preferredMic) {
+            if (this.devices.preferredMicrophone) {
                 constraints.audio.optional.push({
-                    sourceId: this.preferredMic
+                    sourceId: this.devices.preferredMicrophone
                 });
             }
         }
 
-        if (constraints.video === true && webrtcsupport.prefix === 'webkit') {
+        // Don't override if detailed constraints were explicitly given
+        if (constraints.video === true) {
             constraints.video = {
                 optional: JSON.parse(JSON.stringify(this.defaultOptionalVideoConstraints))
             };
 
-            if (this.preferredCamera) {
+            if (this.devices.preferredCamera) {
                 constraints.video.optional.push({
-                    sourceId: this.preferredCamera
+                    sourceId: this.devices.preferredCamera
                 });
             }
         }
@@ -496,146 +462,64 @@ module.exports = State.extend({
 
         constraints = this._prepConstraints(constraints);
 
-        var wantMicAccess = !!constraints.audio;
-        var wantCameraAccess = !!constraints.video;
+        var transaction = {};
 
-        if (wantMicAccess) {
-            this.micAccess = 'pending';
-        }
-        if (wantCameraAccess) {
-            this.cameraAccess = 'pending';
+        if (!!constraints.audio) {
+            transaction.wantMicrophoneAccess = true;
+            transaction.microphoneAccess = self.devices.requestMicrophoneAccess();
         }
 
-        this._permissionCheck(constraints);
+        if (!!constraints.video) {
+            transaction.wantCameraAccess = true;
+            transaction.cameraAccess = self.devices.requestCameraAccess();
+        }
 
         getUserMedia(constraints, function (err, stream) {
-            clearTimeout(self.permissionTimeout);
-
             if (err) {
-                return self._handleError(err, constraints, cb);
+                return self._handleError(err, transaction, cb);
             }
 
             if (stream.getAudioTracks().length > 0) {
-                self.micAvailable = true;
-                self.micAccess = 'granted';
-            } else if (wantMicAccess) {
-                if (self.audioSources.length) {
-                    self.micAccess = 'denied';
-                } else {
-                    self.micAccess = '';
-                }
+                transaction.microphoneAccess('granted');
+            } else if (transaction.wantMicrophoneAccess) {
+                transaction.microphoneAccess('error');
             }
+
             if (stream.getVideoTracks().length > 0) {
-                self.cameraAvailable = true;
-                self.cameraAccess = 'granted';
-            } else if (wantCameraAccess) {
-                if (self.videoSources.length) {
-                    self.cameraAccess = 'denied';
-                } else {
-                    self.cameraAccess = '';
-                }
+                transaction.cameraAccess('granted');
+            } else if (transaction.wantCameraAccess) {
+                transaction.cameraAccess('error');
             }
 
             cb(err, stream);
         });
     },
 
-    _permissionCheck: function (constraints) {
-        var self = this;
-        if (this.permissionTimeout) {
-            return;
+    _handleError: function (err, transaction, cb) {
+        function handleError(response) {
+            if (transaction.wantCameraAccess) {
+                transaction.cameraAccess(response);
+            }
+            if (transaction.wantMicrophoneAccess) {
+                transaction.microphoneAccess(response);
+            }
         }
-
-        var wantMicAccess = !!constraints.audio;
-        var wantCameraAccess = !!constraints.video;
-
-        this.permissionTimeout = setTimeout(function () {
-            if (wantMicAccess && !self.micPermissionGranted && !self.micPermissionDenied) {
-                self.micAccess = 'pending';
-            }
-            if (wantCameraAccess && !self.cameraPermissionGranted && !self.cameraPermissionDenied) {
-                self.cameraAccess = 'pending';
-            }
-            self.permissionTimeout = undefined;
-        }, 100);
-    },
-
-    _handleError: function (err, constraints, cb) {
-        var wantMicAccess = !!constraints.audio;
-        var wantCameraAccess = !!constraints.video;
 
         switch (err.name) {
             case 'PermissionDeniedError':
-                if (wantCameraAccess) {
-                    this.cameraAccess = 'denied';
-                }
-                if (wantMicAccess) {
-                    this.micAccess = 'denied';
-                }
+                handleError('denied');
                 break;
             case 'PermissionDismissedError':
-                if (wantCameraAccess) {
-                    this.cameraAccess = 'dismissed';
-                }
-                if (wantMicAccess) {
-                    this.micAccess = 'dismissed';
-                }
+                handleError('dismissed');
                 break;
             case 'DevicesNotFoundError':
-                if (wantCameraAccess) {
-                    this.cameraAvailable = false;
-                    this.cameraAccess = 'denied';
-                }
-                if (wantMicAccess) {
-                    this.micAvailable = false;
-                    this.micAccess = 'denied';
-                }
-                break;
             case 'ConstraintNotSatisfiedError':
-                if (wantCameraAccess) {
-                    this.cameraAccess = '';
-                }
-                if (wantMicAccess) {
-                    this.micAccess = '';
-                }
-                break;
-            case 'NoMediaRequestedError':
             case 'NotSupportedError':
-                this.unknownSources = false;
-                this.cameraAvailable = false;
-                this.micAvailable = false;
-                this.cameraAccess = '';
-                this.micAccess = '';
+            case 'NoMediaRequestedError':
+                handleError('error');
                 break;
         }
+
         return cb(err);
-    },
-
-    _collectSources: function () {
-        var self = this;
-
-        // Check what kinds of input devices, if any, we have
-        // FIXME: This device detection process will be changing in M38 to
-        //        use enumerateDevices() instead (along with a new event).
-        var cb = function (sources) {
-            self.sources.reset(sources);
-
-            // Because subcollections don't proxy the 'reset' event
-            self.videoSources.trigger('reset');
-            self.audioSources.trigger('reset');
-        };
-        if (window.MediaStreamTrack && window.MediaStreamTrack.getSources) {
-            self.unknownSources = !self.cameraPermissionGranted && !self.micPermissionGranted;
-            window.MediaStreamTrack.getSources(cb);
-        } else {
-            // fake things
-            self.unknownSources = true;
-            window.setTimeout(cb, 0,
-                [
-                    { label: '', facing: '', kind: 'audio', id: 'defaultMicrophone' },
-                    { label: '', facing: '', kind: 'video', id: 'defaultCamera' },
-                ]
-            );
-        }
     }
 });

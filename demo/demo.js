@@ -44,47 +44,35 @@ var MainView = View.extend({
             type: 'toggle',
             hook: 'capturing-audio'
         },
-        'model.micAvailable': {
-            type: 'toggle',
-            hook: 'mic-available'
-        },
-        'model.cameraAvailable': {
-            type: 'toggle',
-            hook: 'camera-available'
-        },
-        'model.screenSharingAvailable': {
-            type: 'toggle',
-            hook: 'screenshare-available'
-        },
-        'model.cameraPermissionGranted': {
+        'model.devices.cameraPermissionGranted': {
             type: 'toggle',
             hook: 'camera-permission-granted'
         },
-        'model.cameraPermissionDenied': {
+        'model.devices.cameraPermissionDenied': {
             type: 'toggle',
             hook: 'camera-permission-denied'
         },
-        'model.cameraPermissionPending': {
+        'model.devices.cameraPermissionPending': {
             type: 'toggle',
             hook: 'camera-permission-pending'
         },
-        'model.cameraPermissionDismissed': {
+        'model.devices.cameraPermissionDismissed': {
             type: 'toggle',
             hook: 'camera-permission-dismissed'
         },
-        'model.micPermissionGranted': {
+        'model.devices.microphonePermissionGranted': {
             type: 'toggle',
             hook: 'mic-permission-granted'
         },
-        'model.micPermissionDenied': {
+        'model.devices.microphonePermissionDenied': {
             type: 'toggle',
             hook: 'mic-permission-denied'
         },
-        'model.micPermissionPending': {
+        'model.devices.microphonePermissionPending': {
             type: 'toggle',
             hook: 'mic-permission-pending'
         },
-        'model.micPermissionDismissed': {
+        'model.devices.microphonePermissionDismissed': {
             type: 'toggle',
             hook: 'mic-permission-dismissed'
         }
