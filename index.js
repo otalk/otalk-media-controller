@@ -206,7 +206,7 @@ module.exports = State.extend({
 
         if (stream.isState) {
             stream.origin = 'local';
-            stream.isScreen = isScreen;
+            stream.isScreen = isScreen || false;
             stream.session = opts.session;
             return this.streams.add(stream);
         } else {
