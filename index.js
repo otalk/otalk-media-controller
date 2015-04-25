@@ -110,76 +110,95 @@ module.exports = State.extend({
 
         this.streams.bind('change:isEnded', function (stream) {
             if (stream.isEnded) {
-                self.streams.remove(stream);
+                process.nextTick(function () {
+                    self.streams.remove(stream);
+                });
             }
         });
     },
 
     initializeSubCollections: function () {
         this.localStreams = new SubCollection(this.streams, {
-            filter: function (stream) {
-                return !stream.isEnded && stream.isLocal;
-            },
-            watched: [ 'isEnded' ]
+            where: {
+                isEnded: false,
+                isLocal: true
+            }
         });
 
-        this.localScreens = new SubCollection(this.localStreams, {
+        this.localScreens = new SubCollection(this.streams, {
             where: {
+                isEnded: false,
+                isLocal: true,
                 isVideo: true,
                 isScreen: true
             }
         });
 
-        this.localVideoStreams = new SubCollection(this.localStreams, {
+        this.localVideoStreams = new SubCollection(this.streams, {
             where: {
+                isEnded: false,
+                isLocal: true,
                 isVideo: true,
                 isScreen: false
             }
         });
 
-        this.localAudioOnlyStreams = new SubCollection(this.localStreams, {
+        this.localAudioOnlyStreams = new SubCollection(this.streams, {
             where: {
-                isAudio: true
+                isEnded: false,
+                isLocal: true,
+                isAudioOnly: true
             }
         });
 
         this.remoteStreams = new SubCollection(this.streams, {
-            filter: function (stream) {
-                return !stream.isEnded && stream.isRemote;
-            },
-            watched: [ 'isEnded' ]
+            where: {
+                isEnded: false,
+                isRemote: true
+            }
         });
 
-        this.remoteVideoStreams = new SubCollection(this.remoteStreams, {
+        this.remoteVideoStreams = new SubCollection(this.streams, {
             where: {
+                isEnded: false,
+                isRemote: true,
                 isVideo: true
             }
         });
 
-        this.remoteAudioOnlyStreams = new SubCollection(this.remoteStreams, {
+        this.remoteAudioOnlyStreams = new SubCollection(this.streams, {
             where: {
+                isEnded: false,
+                isRemote: true,
                 isAudioOnly: true
             }
         });
 
-        this.claimedRemoteStreams = new SubCollection(this.remoteStreams, {
+        this.claimedRemoteStreams = new SubCollection(this.streams, {
             where: {
+                isEnded: false,
+                isRemote: true,
                 isClaimed: true
             }
         });
 
-        this.claimedRemoteVideoStreams = new SubCollection(this.claimedRemoteStreams, {
+        this.claimedRemoteVideoStreams = new SubCollection(this.streams, {
             where: {
-                isVideo: true
+                isEnded: false,
+                isRemote: true,
+                isVideo: true,
+                isClaimed: true
             }
         });
 
-        this.claimedRemoteAudioOnlyStreams = new SubCollection(this.claimedRemoteStreams, {
+        this.claimedRemoteAudioOnlyStreams = new SubCollection(this.streams, {
             where: {
-                isAudioOnly: true
+                isEnded: false,
+                isRemote: true,
+                isAudioOnly: true,
+                isClaimed: true
             }
         });
-
     },
 
     addLocalStream: function (stream, isScreen, opts) {
