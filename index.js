@@ -213,7 +213,7 @@ module.exports = State.extend({
             return this.streams.add({
                 origin: 'local',
                 stream: stream,
-                isScreen: isScreen,
+                isScreen: isScreen || false,
                 session: opts.session
             });
         }
