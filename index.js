@@ -408,7 +408,7 @@ module.exports = State.extend({
 
     findStream: function (mediaStream) {
         var matches = this.streams.filter(function (stream) {
-            return stream.stream === mediaStream;
+            return stream.stream === mediaStream || (stream.id && stream.id === mediaStream.id);
         });
         return matches[0];
     },
