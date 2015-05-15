@@ -111,7 +111,7 @@ module.exports = State.extend({
         this.streams.bind('change:isEnded', function (stream) {
             if (stream.isEnded) {
                 process.nextTick(function () {
-                    self.streams.remove(stream);
+                    self.streams.remove(stream.id);
                 });
             }
         });
