@@ -34,9 +34,16 @@
     "beefy": "^2.1.1",
     "jshint": "^2.5.5",
     "otalk-media-stream-view": "^2.0.0",
-    "precommit-hook": "^1.0.7"
+    "precommit-hook": "^1.0.7",
+    "tape": "^4.0.0",
+    "travis-multirunner": "^2.5.0",
+    "testling": "^1.7.1"
   },
   "scripts": {
-    "start": "./node_modules/.bin/beefy demo/demo.js"
+    "start": "./node_modules/.bin/beefy demo/demo.js",
+    "test-travis": "test/run-tests"
+  },
+  "testling": {
+    "files": "test/*.js"
   }
 }
