@@ -7,7 +7,7 @@ var MediaController = require('../index');
 
 test('basic test', function (t) {
     var media = new MediaController();
-    media.start({audio: true, video: true}, function (err, stream) {
+    media.start({audio: true, video: true, fake: true}, function (err, stream) {
         if (err) {
             t.fail('error: ' + err.toString());
         } else {
