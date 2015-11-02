@@ -1,4 +1,3 @@
-var WebRTC = require('webrtcsupport');
 var getUserMedia = require('getusermedia');
 var getScreenMedia = require('getscreenmedia');
 
@@ -443,10 +442,6 @@ module.exports = State.extend({
             };
         }
 
-        if (WebRTC.prefix !== 'webkit') {
-            return constraints;
-        }
-
         // Don't override if detailed constraints were explicitly given
         if (constraints.audio === true) {
             constraints.audio = {
@@ -454,9 +449,7 @@ module.exports = State.extend({
             };
 
             if (this.devices.preferredMicrophone) {
-                constraints.audio.optional.push({
-                    sourceId: this.devices.preferredMicrophone
-                });
+                constraints.audio.deviceId = { exact: this.devices.preferredMicrophone };
             }
         }
 
@@ -467,9 +460,7 @@ module.exports = State.extend({
             };
 
             if (this.devices.preferredCamera) {
-                constraints.video.optional.push({
-                    sourceId: this.devices.preferredCamera
-                });
+                constraints.video.deviceId = { exact: this.devices.preferredCamera };
             }
         }
 

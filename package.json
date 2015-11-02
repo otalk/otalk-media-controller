@@ -26,8 +26,7 @@
     "getusermedia": "^1.0.0",
     "hark": "^1.1.1",
     "otalk-media-devices": "^1.0.0",
-    "otalk-model-media": "^4.0.0",
-    "webrtcsupport": "^2.0.0"
+    "otalk-model-media": "^4.0.0"
   },
   "devDependencies": {
     "ampersand-view": "^7.1.1",
