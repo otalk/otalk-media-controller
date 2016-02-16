@@ -468,7 +468,7 @@ module.exports = State.extend({
 
             if (this.devices.preferredCamera) {
                 if (WebRTC.prefix === 'webkit') {
-                    constraints.audio.optional.push({
+                    constraints.video.optional.push({
                         sourceId: this.devices.preferredCamera
                     });
                 } else {
