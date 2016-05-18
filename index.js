@@ -455,7 +455,7 @@ module.exports = State.extend({
                         sourceId: this.devices.preferredMicrophone
                     });
                 } else {
-                    constraints.audio.deviceId = { exact: this.devices.preferredMicrophone };
+                    constraints.audio.deviceId = this.devices.preferredMicrophone;
                 }
             }
         }
@@ -472,7 +472,7 @@ module.exports = State.extend({
                         sourceId: this.devices.preferredCamera
                     });
                 } else {
-                    constraints.video.deviceId = { exact: this.devices.preferredCamera };
+                    constraints.video.deviceId = this.devices.preferredCamera;
                 }
             }
         }
